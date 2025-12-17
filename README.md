@@ -154,4 +154,4 @@ QT_QPA_PLATFORM=wayland python3 qr_scanner_service.py
 
 ## ライセンス
 
-MIT License
+Apache License 2.0
