@@ -1,0 +1,30 @@
+2025-12-17 19:58:16 [INFO] ==================================================
+2025-12-17 19:58:16 [INFO] QR Scanner Service 起動
+2025-12-17 19:58:16 [INFO] pyzbar: 有効
+2025-12-17 19:58:16 [INFO] WEBHOOK_URL: https://discord.com/api/webhoo...
+2025-12-17 19:58:16 [INFO] OPEN_QR: 9f2a7c1e4b...
+2025-12-17 19:58:16 [INFO] CLOSE_QR: c3d9b2a84e...
+2025-12-17 19:58:16 [INFO] TEST_QR: 12dwui43ui...
+2025-12-17 19:58:16 [INFO] LOG_RAW_QR: False, SHOW_RAW_TEXT: False
+2025-12-17 19:58:16 [INFO] 設定読み込みOK
+2025-12-17 19:58:16 [INFO] ==================================================
+2025-12-17 19:58:16 [INFO] CAMERA_OPEN: デバイス 0 (640x480@30fps)
+2025-12-17 19:58:16 [INFO] カメラオープンOK
+2025-12-17 19:59:51 [INFO] Ctrl+C で終了
+2025-12-17 19:59:51 [INFO] QR Scanner Service 終了
+2025-12-17 20:00:12 [INFO] ==================================================
+2025-12-17 20:00:12 [INFO] QR Scanner Service 起動
+2025-12-17 20:00:12 [INFO] pyzbar: 有効
+2025-12-17 20:00:12 [INFO] WEBHOOK_URL: https://discord.com/api/webhoo...
+2025-12-17 20:00:12 [INFO] OPEN_QR: 9f2a7c1e4b...
+2025-12-17 20:00:12 [INFO] CLOSE_QR: c3d9b2a84e...
+2025-12-17 20:00:12 [INFO] TEST_QR: 12dwui43ui...
+2025-12-17 20:00:12 [INFO] LOG_RAW_QR: False, SHOW_RAW_TEXT: False
+2025-12-17 20:00:12 [INFO] 設定読み込みOK
+2025-12-17 20:00:12 [INFO] ==================================================
+2025-12-17 20:00:12 [INFO] CAMERA_OPEN: デバイス 0 (640x480@30fps)
+2025-12-17 20:00:12 [INFO] カメラオープンOK
+2025-12-17 20:04:04 [INFO] QR_DETECTED: UNKNOWN preview=826010
+2025-12-17 20:04:04 [INFO] UNKNOWN: 不明なQRコード
+2025-12-17 20:04:05 [DEBUG] REARM: UNKNOWN が再アームされました
+2025-12-17 20:07:16 [INFO] QR Scanner Service 終了

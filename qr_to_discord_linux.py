@@ -17,8 +17,8 @@ CLOSE_QR    = os.environ["CLOSE_QR"]
 TEST_QR     = os.environ["TEST_QR"]  # ★追加
 
 WIDTH, HEIGHT = 640, 480
-SCAN_EVERY_N_FRAMES = 2
-COOLDOWN_SEC = 1.5
+SCAN_EVERY_N_FRAMES = 3
+COOLDOWN_SEC = 3.5
 
 ROI_PADDING = 40
 ROI_TIMEOUT_SEC = 2.0
@@ -131,14 +131,18 @@ def main():
                 rect = c.rect
                 bbox = (rect.left + roi_offset[0], rect.top + roi_offset[1], rect.width, rect.height)
         else:
-            text, points, _ = cv_detector.detectAndDecode(scan_img)
-            if text:
-                decoded_text = text
-                if points is not None:
-                    pts = points[0].astype(int)
-                    x0, y0 = pts.min(axis=0)
-                    x1, y1 = pts.max(axis=0)
-                    bbox = (x0 + roi_offset[0], y0 + roi_offset[1], (x1 - x0), (y1 - y0))
+            try:
+                text, points, _ = cv_detector.detectAndDecode(scan_img)
+                if text:
+                    decoded_text = text
+                    if points is not None:
+                        pts = points[0].astype(int)
+                        x0, y0 = pts.min(axis=0)
+                        x1, y1 = pts.max(axis=0)
+                        bbox = (x0 + roi_offset[0], y0 + roi_offset[1], (x1 - x0), (y1 - y0))
+            except cv2.error:
+                # OpenCV 4.12.0 のバグ回避（特定の画像で Assertion failed が発生する）
+                pass
 
         if decoded_text:
             # 表示用（漏れが気になるなら非表示に）
