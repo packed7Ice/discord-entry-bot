@@ -46,7 +46,8 @@ FPS = 30
 SCAN_EVERY_N_FRAMES = 2
 
 # エッジトリガ再アーム時間（この秒数QRが見えなくなったら再度armed=Trueにする）
-REARM_MISS_SEC = 1.0
+# 長めに設定してかざし続けても再送信しないようにする
+REARM_MISS_SEC = 30.0
 
 # カメラ読み取り連続失敗時のリトライ上限
 CAM_FAIL_THRESHOLD = 30
@@ -264,47 +265,52 @@ class CameraManager:
 # ---------------------------------------------------------------------------
 class EdgeTriggerManager:
     """
-    エッジトリガ（再アーム）方式で連続検出を抑制
+    エッジトリガ方式で連続検出を抑制
     
     ロジック:
-    - ある種類を検出したら armed=False にする
-    - REARM_MISS_SEC 秒間その種類が見えなくなったら armed=True に戻す
+    - 同じ種類のQRコードを連続検出 → 無視（別のコードが来るまでブロック）
+    - 異なる種類のQRコードを検出 → 即座に反応
+    - 一定時間（REARM_MISS_SEC）何も検出しなかった場合も再アーム
     """
 
     def __init__(self, rearm_sec: float = REARM_MISS_SEC):
         self.rearm_sec = rearm_sec
-        # 各種類ごとの状態: {"OPEN": {"armed": True, "last_seen": 0.0}, ...}
-        self.states: Dict[str, dict] = {}
-
-    def _get_state(self, kind: str) -> dict:
-        if kind not in self.states:
-            self.states[kind] = {"armed": True, "last_seen": 0.0}
-        return self.states[kind]
+        self.last_triggered_kind: Optional[str] = None
+        self.last_triggered_time: float = 0.0
 
     def update(self, kind: str, now: float) -> bool:
         """
         検出時に呼び出す。
-        Returns: True なら送信可能（armed状態だった）、False なら無視
+        Returns: True なら送信可能、False なら無視
         """
-        state = self._get_state(kind)
-        state["last_seen"] = now
-
-        if state["armed"]:
-            state["armed"] = False
+        # 前回と異なる種類 → 即座に反応
+        if kind != self.last_triggered_kind:
+            logger.debug(f"NEW_KIND: {self.last_triggered_kind} -> {kind}")
+            self.last_triggered_kind = kind
+            self.last_triggered_time = now
             return True
+        
+        # 同じ種類だが、一定時間経過している → 再度反応
+        elapsed = now - self.last_triggered_time
+        if elapsed >= self.rearm_sec:
+            logger.debug(f"REARM_TIMEOUT: {kind} ({elapsed:.1f}s elapsed)")
+            self.last_triggered_time = now
+            return True
+        
+        # 同じ種類で時間も経っていない → 無視
         return False
 
     def tick(self, now: float) -> None:
         """
-        毎フレーム呼び出す。
-        一定時間見えなかった種類を再アームする。
+        毎フレーム呼び出す（互換性のため残す）。
+        何も検出しない時間が長ければリセット。
         """
-        for kind, state in self.states.items():
-            if not state["armed"]:
-                elapsed = now - state["last_seen"]
-                if elapsed >= self.rearm_sec:
-                    state["armed"] = True
-                    logger.debug(f"REARM: {kind} が再アームされました")
+        if self.last_triggered_kind is not None:
+            elapsed = now - self.last_triggered_time
+            if elapsed >= self.rearm_sec * 2:
+                # 長時間何も検出していない場合、状態をリセット
+                logger.debug(f"RESET: 長時間未検出 ({elapsed:.1f}s)")
+                self.last_triggered_kind = None
 
 # ---------------------------------------------------------------------------
 # QRコード検出
