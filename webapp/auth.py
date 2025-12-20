@@ -25,7 +25,7 @@ serializer = URLSafeTimedSerializer(SESSION_SECRET)
 
 # セッションCookie名
 SESSION_COOKIE_NAME = "session"
-SESSION_MAX_AGE = 60 * 60 * 24 * 7  # 7日間
+SESSION_MAX_AGE = 60 * 60 * 24 * 180  # 180日間（半年）
 
 
 def generate_state() -> str:
