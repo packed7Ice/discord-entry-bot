@@ -17,6 +17,35 @@
 - 🔄 **カメラ自動リカバリ**: 接続切れ時に自動再接続
 - 📝 **ログローテーション**: 1MB×5世代でログをローテーション
 
+## 技術スタック
+
+### バックエンド
+
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Uvicorn](https://img.shields.io/badge/Uvicorn-499848?logo=gunicorn&logoColor=white)](https://www.uvicorn.org)
+
+### フロントエンド
+
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)](https://developer.mozilla.org/docs/Web/HTML)
+[![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white)](https://developer.mozilla.org/docs/Web/CSS)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
+
+### QRコード処理
+
+[![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org)
+[![pyzbar](https://img.shields.io/badge/pyzbar-QR%20Decode-green)](https://github.com/NaturalHistoryMuseum/pyzbar)
+[![jsQR](https://img.shields.io/badge/jsQR-Web%20QR%20Scan-orange)](https://github.com/cozmo/jsQR)
+
+### 認証・通信
+
+[![Discord](https://img.shields.io/badge/Discord_OAuth2-5865F2?logo=discord&logoColor=white)](https://discord.com/developers/docs/topics/oauth2)
+[![httpx](https://img.shields.io/badge/httpx-Async%20HTTP-blue)](https://www.python-httpx.org)
+
+### デプロイ
+
+[![Render](https://img.shields.io/badge/Render-46E3B7?logo=render&logoColor=white)](https://render.com)
+
 ## セットアップ
 
 ### 1. 依存関係のインストール
