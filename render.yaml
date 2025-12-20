@@ -4,8 +4,9 @@ services:
     name: discord-entry-bot
     runtime: python
     plan: free
-    buildCommand: pip install -r webapp/requirements.txt
-    startCommand: cd webapp && uvicorn main:app --host 0.0.0.0 --port $PORT
+    rootDir: webapp
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DISCORD_WEBHOOK_URL
         sync: false
