@@ -1,6 +1,4 @@
-"""
-make_webapp_qr.py - WebアプリへのアクセスQRコードを生成
-"""
+import os
 from pathlib import Path
 
 import qrcode
@@ -10,7 +8,8 @@ from PIL import Image, ImageDraw, ImageFont
 PROJECT_DIR = Path(__file__).resolve().parent
 OUT_DIR = PROJECT_DIR / "qr_out"
 
-WEBAPP_URL = "https://your-app.onrender.com/"
+# 環境変数から取得、または手動で設定してください
+WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://your-app.onrender.com/")
 LABEL = "QR Scanner"
 
 BOX_SIZES = [12, 10, 8, 6]

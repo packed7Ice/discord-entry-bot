@@ -6,7 +6,7 @@
 
 以下のいずれかの方法でアクセスしてください：
 
-- **URLを直接入力**: https://your-app.onrender.com/
+- **URLを直接入力**: デプロイしたWebアプリのURLにアクセス
 - **QRコードをスキャン**: 下記のQRコードをスマートフォンのカメラで読み取る
 
 ![QRスキャナーアクセス用QRコード](qr_out/WEBAPP_QR_box10.png)
