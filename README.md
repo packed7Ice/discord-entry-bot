@@ -1,13 +1,21 @@
 # discord-entry-bot
 
-QRコードをカメラでスキャンし、Discord Webhookへ通知を送信するサービス。
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+[![Discord](https://img.shields.io/badge/Discord-Webhook-5865F2.svg)](https://discord.com)
 
-## 機能
+> **QRコードをスキャンしてDiscord Webhookに通知を送信するボット**
+> 
+> PCカメラでのスキャンに加え、スマートフォンのブラウザからもQRコードを読み取り可能。Discord OAuth2によるサーバーメンバー認証対応。
 
-- **高速QR検出**: pyzbar優先（fallbackでOpenCV）
-- **エッジトリガ方式**: 連続送信を防止（一度検出したら一定時間見えなくなるまで再送信しない）
-- **カメラ自動リカバリ**: 接続切れ時に自動再接続
-- **ログローテーション**: 1MB×5世代でログをローテーション
+## 主な機能
+
+- 🔍 **高速QR検出**: pyzbar優先（fallbackでOpenCV）
+- 📱 **スマートフォン対応**: Webアプリでブラウザからスキャン
+- 🔐 **Discord認証**: サーバーメンバーのみアクセス可能
+- ⚡ **エッジトリガ方式**: 連続送信を防止
+- 🔄 **カメラ自動リカバリ**: 接続切れ時に自動再接続
+- 📝 **ログローテーション**: 1MB×5世代でログをローテーション
 
 ## セットアップ
 
