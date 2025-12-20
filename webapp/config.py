@@ -41,6 +41,7 @@ SESSION_SECRET = get_required_env("SESSION_SECRET")
 BASE_URL = get_optional_env("BASE_URL", "http://localhost:8000")
 
 # Discord OAuth2 URLs
-DISCORD_AUTHORIZE_URL = "https://discord.com/api/oauth2/authorize"
+# 標準URLを使用（モバイルでDiscordアプリが開きやすくなる可能性あり）
+DISCORD_AUTHORIZE_URL = "https://discord.com/oauth2/authorize"
 DISCORD_TOKEN_URL = "https://discord.com/api/oauth2/token"
 DISCORD_API_BASE = "https://discord.com/api/v10"
