@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="QRコードスキャナー - Discord連携">
+    <title>QR Scanner</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+    <div class="container scanner-container">
+        <!-- ヘッダー -->
+        <header class="header">
+            <h1>QR Scanner</h1>
+            <div class="user-info">
+                <span id="username">---</span>
+                <a href="/auth/logout" class="btn-logout">ログアウト</a>
+            </div>
+        </header>
+
+        <!-- スキャナー領域 -->
+        <div class="scanner-wrapper">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas" hidden></canvas>
+            <div class="scanner-overlay">
+                <div class="scanner-frame"></div>
+            </div>
+        </div>
+
+        <!-- ステータス表示 -->
+        <div id="status" class="status status-ready">
+            <span class="status-icon">📷</span>
+            <span class="status-text">カメラを起動中...</span>
+        </div>
+
+        <!-- 結果表示 -->
+        <div id="result" class="result hidden">
+            <div class="result-icon"></div>
+            <div class="result-text"></div>
+        </div>
+
+        <!-- エラー表示 -->
+        <div id="error" class="error hidden">
+            <p class="error-text"></p>
+            <button onclick="location.reload()" class="btn btn-retry">再試行</button>
+        </div>
+    </div>
+
+    <!-- jsQR ライブラリ (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="/scanner.js"></script>
+</body>
+
+</html>

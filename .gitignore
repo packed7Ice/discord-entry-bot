@@ -1,5 +1,33 @@
+# 環境変数（機密情報）
 .env
+.env.local
+.env.*.local
+
+# Python
 .venv/
+venv/
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# 生成されたファイル
 qr_out/
 logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# その他
+*.log

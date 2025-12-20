@@ -1,0 +1,380 @@
+/* ==========================================================================
+   QR Scanner Web App - Styles
+   ========================================================================== */
+
+:root {
+    /* Colors */
+    --primary: #5865F2;
+    --primary-dark: #4752C4;
+    --success: #3BA55D;
+    --error: #ED4245;
+    --warning: #FAA61A;
+    
+    /* Backgrounds */
+    --bg-dark: #1a1a2e;
+    --bg-card: #16213e;
+    --bg-overlay: rgba(0, 0, 0, 0.7);
+    
+    /* Text */
+    --text-primary: #ffffff;
+    --text-secondary: #b9bbbe;
+    --text-muted: #72767d;
+    
+    /* Misc */
+    --border-radius: 12px;
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --transition: all 0.3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+    background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f23 100%);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   Container
+   ========================================================================== */
+
+.container {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+.login-container {
+    justify-content: center;
+}
+
+.scanner-container {
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ==========================================================================
+   Card (Login)
+   ========================================================================== */
+
+.card {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: 40px 30px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    max-width: 400px;
+    width: 100%;
+}
+
+.logo {
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+.card h1 {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+}
+
+.note {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 20px;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.btn-discord {
+    background: var(--primary);
+    color: white;
+    width: 100%;
+}
+
+.btn-discord:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+.btn-retry {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--text-muted);
+}
+
+.btn-retry:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-logout {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.btn-logout:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-size: 1.3rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#username {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   Scanner
+   ========================================================================== */
+
+.scanner-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    background: #000;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+#video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.scanner-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.scanner-frame {
+    width: 70%;
+    height: 70%;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    position: relative;
+    animation: pulse 2s infinite;
+}
+
+.scanner-frame::before,
+.scanner-frame::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border-color: var(--primary);
+    border-style: solid;
+}
+
+.scanner-frame::before {
+    top: -3px;
+    left: -3px;
+    border-width: 4px 0 0 4px;
+    border-radius: 12px 0 0 0;
+}
+
+.scanner-frame::after {
+    bottom: -3px;
+    right: -3px;
+    border-width: 0 4px 4px 0;
+    border-radius: 0 0 12px 0;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(88, 101, 242, 0);
+    }
+}
+
+/* ==========================================================================
+   Status
+   ========================================================================== */
+
+.status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px;
+    margin-top: 20px;
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    width: 100%;
+}
+
+.status-icon {
+    font-size: 1.5rem;
+}
+
+.status-text {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.status-ready .status-text {
+    color: var(--text-primary);
+}
+
+.status-scanning {
+    border-left: 4px solid var(--primary);
+}
+
+/* ==========================================================================
+   Result
+   ========================================================================== */
+
+.result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px;
+    margin-top: 20px;
+    border-radius: var(--border-radius);
+    width: 100%;
+    animation: slideUp 0.3s ease;
+}
+
+.result-success {
+    background: linear-gradient(135deg, rgba(59, 165, 93, 0.2) 0%, rgba(59, 165, 93, 0.1) 100%);
+    border: 1px solid var(--success);
+}
+
+.result-error {
+    background: linear-gradient(135deg, rgba(237, 66, 69, 0.2) 0%, rgba(237, 66, 69, 0.1) 100%);
+    border: 1px solid var(--error);
+}
+
+.result-icon {
+    font-size: 2.5rem;
+}
+
+.result-text {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   Error
+   ========================================================================== */
+
+.error {
+    text-align: center;
+    padding: 30px;
+    margin-top: 20px;
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    width: 100%;
+}
+
+.error-text {
+    color: var(--error);
+    margin-bottom: 20px;
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+.hidden {
+    display: none !important;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 480px) {
+    .container {
+        padding: 16px;
+    }
+    
+    .card {
+        padding: 30px 20px;
+    }
+    
+    .header h1 {
+        font-size: 1.1rem;
+    }
+    
+    .scanner-wrapper {
+        border-radius: 8px;
+    }
+}

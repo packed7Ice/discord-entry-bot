@@ -152,6 +152,127 @@ QT_QPA_PLATFORM=wayland python3 qr_scanner_service.py
 2. `qr_scanner_service.py` を使用
 3. 旧版はそのまま残るため、必要に応じて削除
 
+---
+
+## 📱 Web アプリ版（スマートフォン対応）
+
+スマートフォンのブラウザから QR コードをスキャンできる Web アプリ版も利用可能です。
+
+### 特徴
+
+- **スマートフォン対応**: ブラウザからカメラでQRスキャン
+- **Discord認証**: サーバーメンバーのみがアクセス可能
+- **無料ホスティング**: Render.com で無料運用可能
+
+### ファイル構成
+
+```
+webapp/
+├── main.py           # FastAPI サーバー
+├── auth.py           # Discord OAuth2 認証
+├── config.py         # 設定読み込み
+├── requirements.txt  # 依存パッケージ
+└── static/
+    ├── index.html    # スキャナーUI
+    ├── login.html    # ログイン画面
+    ├── style.css     # スタイル
+    └── scanner.js    # QRスキャン処理
+```
+
+### セットアップ
+
+#### 1. Discord Developer Portal でアプリを作成
+
+1. [Discord Developer Portal](https://discord.com/developers/applications) にアクセス
+2. 「New Application」をクリック
+3. 左メニュー「OAuth2」→「General」を開く
+4. 「Redirects」に以下を追加:
+   - ローカル: `http://localhost:8000/auth/callback`
+   - 本番: `https://your-app.onrender.com/auth/callback`
+5. **Client ID** と **Client Secret** をメモ
+
+#### 2. 環境変数を設定
+
+`.env.example` をコピーして `.env` を作成し、以下を設定：
+
+```env
+# 既存設定
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxxx/yyyy
+OPEN_QR=your_open_token
+CLOSE_QR=your_close_token
+
+# Web アプリ用（新規追加）
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_CLIENT_SECRET=your_client_secret
+DISCORD_GUILD_ID=your_server_id
+SESSION_SECRET=your_random_secret
+BASE_URL=http://localhost:8000
+```
+
+SESSION_SECRET の生成:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+#### 3. ローカルで実行
+
+```bash
+cd webapp
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+ブラウザで http://localhost:8000 にアクセス。
+
+### Render.com へのデプロイ
+
+#### 1. GitHub にプッシュ
+
+```bash
+git add .
+git commit -m "Add web app"
+git push origin main
+```
+
+#### 2. Render.com で新規 Web Service 作成
+
+1. [Render.com](https://render.com) にログイン
+2. 「New」→「Web Service」
+3. GitHub リポジトリを接続
+4. 設定:
+   - **Name**: `discord-entry-bot`
+   - **Runtime**: Python
+   - **Build Command**: `pip install -r webapp/requirements.txt`
+   - **Start Command**: `cd webapp && uvicorn main:app --host 0.0.0.0 --port $PORT`
+
+#### 3. 環境変数を設定
+
+Render のダッシュボードで Environment Variables を追加:
+
+| 変数名 | 値 |
+|--------|-----|
+| `DISCORD_WEBHOOK_URL` | Webhook URL |
+| `OPEN_QR` | 開錠トークン |
+| `CLOSE_QR` | 施錠トークン |
+| `DISCORD_CLIENT_ID` | OAuth2 Client ID |
+| `DISCORD_CLIENT_SECRET` | OAuth2 Client Secret |
+| `DISCORD_GUILD_ID` | サーバーID |
+| `SESSION_SECRET` | ランダム文字列 |
+| `BASE_URL` | `https://your-app.onrender.com` |
+
+#### 4. Discord Redirect URI を更新
+
+Discord Developer Portal で Redirect URI に本番URLを追加:
+```
+https://your-app.onrender.com/auth/callback
+```
+
+### 注意事項
+
+- **無料枠の制限**: 15分間アクセスがないとスリープ（初回アクセスに数秒かかる）
+- **HTTPS必須**: カメラアクセスにはHTTPS接続が必要（Render.comは自動でHTTPS）
+
 ## ライセンス
 
 Apache License 2.0
+

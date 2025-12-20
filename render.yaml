@@ -1,0 +1,27 @@
+# Render.com デプロイ設定
+services:
+  - type: web
+    name: discord-entry-bot
+    runtime: python
+    plan: free
+    buildCommand: pip install -r webapp/requirements.txt
+    startCommand: cd webapp && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+      - key: OPEN_QR
+        sync: false
+      - key: CLOSE_QR
+        sync: false
+      - key: TEST_QR
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: BASE_URL
+        sync: false
