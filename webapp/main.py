@@ -125,6 +125,7 @@ async def get_me(request: Request):
 async def scan_qr(request: Request):
     """QRコードを検証してDiscordに送信"""
     user = require_auth(request)
+    username = user.get("username", "不明")
     
     try:
         body = await request.json()
@@ -138,19 +139,22 @@ async def scan_qr(request: Request):
     
     # QRコード判定
     action = None
-    message = None
+    base_message = None
     
     if qr_content == OPEN_QR:
         action = "open"
-        message = "あけた"
+        base_message = "あけた"
     elif qr_content == CLOSE_QR:
         action = "close"
-        message = "しめた"
+        base_message = "しめた"
     elif TEST_QR and qr_content == TEST_QR:
         action = "test"
-        message = "test"
+        base_message = "test"
     else:
         raise HTTPException(400, "不明なQRコードです")
+    
+    # ユーザー名を含むメッセージを作成
+    message = f"{base_message} by {username}"
     
     # Discord Webhookに送信
     try:
@@ -168,7 +172,7 @@ async def scan_qr(request: Request):
         "status": "ok",
         "action": action,
         "message": message,
-        "user": user["username"],
+        "user": username,
     }
 
 
