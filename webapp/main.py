@@ -125,6 +125,7 @@ async def get_me(request: Request):
 async def scan_qr(request: Request):
     """QRコードを検証してDiscordに送信"""
     user = require_auth(request)
+    user_id = user.get("user_id", "")
     username = user.get("username", "不明")
     
     try:
@@ -153,8 +154,8 @@ async def scan_qr(request: Request):
     else:
         raise HTTPException(400, "不明なQRコードです")
     
-    # ユーザー名を含むメッセージを作成
-    message = f"{base_message} by {username}"
+    # メンション形式でメッセージを作成
+    message = f"{base_message} by <@{user_id}>"
     
     # Discord Webhookに送信
     try:
