@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment files (secrets should be set in Cloud Run)
+.env
+.env.*
+
+# Python cache
+__pycache__
+*.py[cod]
+*.pyo
+.Python
+*.egg-info
+
+# Virtual environments
+.venv
+venv
+
+# Output directories
+qr_out
+logs
+
+# IDE
+.vscode
+.idea
+
+# Docs (not needed for runtime)
+README.md
+USAGE.md
+LICENSE
+
+# PC-only scanner files (not needed for webapp)
+qr_scanner_service.py
+qr_to_discord.py
+qr_to_discord_linux.py
+make_qr_tokens.py
+make_qr_tokens_a4.py
+make_webapp_qr.py
+test_imports.py
+
+# Render config (not needed for Cloud Run)
+render.yaml
