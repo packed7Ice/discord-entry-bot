@@ -1,3 +1,8 @@
+"""
+make_action_qr.py - アクションリンクのQRコードを生成
+
+/action/open, /action/close, /action/test へのリンクQRコードを生成します。
+"""
 import os
 from pathlib import Path
 
@@ -8,9 +13,15 @@ from PIL import Image, ImageDraw, ImageFont
 PROJECT_DIR = Path(__file__).resolve().parent
 OUT_DIR = PROJECT_DIR / "qr_out"
 
-# 環境変数から取得、または手動で設定してください
-WEBAPP_URL = os.environ.get("WEBAPP_URL")
-LABEL = "QR Scanner"
+# 環境変数または手動で設定
+BASE_URL = os.environ.get("BASE_URL", "https://sofume-discord-entry-bot-bv6f64bgia-an.a.run.app")
+
+# 生成するアクション
+ACTIONS = [
+    {"path": "/action/open", "label": "OPEN (Link)", "prefix": "ACTION_OPEN"},
+    {"path": "/action/close", "label": "CLOSE (Link)", "prefix": "ACTION_CLOSE"},
+    {"path": "/action/test", "label": "TEST (Link)", "prefix": "ACTION_TEST"},
+]
 
 BOX_SIZES = [12, 10, 8, 6]
 LABEL_HEIGHT_PX = 80
@@ -57,18 +68,23 @@ def make_labeled_qr(url: str, label: str, out_path: Path, box_size: int) -> None
     
     out_path.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(out_path)
-    print(f"  生成: {out_path}")
+    print(f"  -> {out_path.name}")
 
 
 def main() -> None:
-    print("WebアプリQRコードを生成中...")
-    print(f"URL: {WEBAPP_URL}")
+    print("Action Link QR codes")
+    print(f"BASE_URL: {BASE_URL}")
+    print("-" * 40)
     
-    for bs in BOX_SIZES:
-        filename = f"WEBAPP_QR_box{bs}.png"
-        make_labeled_qr(WEBAPP_URL, LABEL, OUT_DIR / filename, box_size=bs)
+    for action in ACTIONS:
+        url = f"{BASE_URL}{action['path']}"
+        print(f"\n{action['label']}: {url}")
+        
+        for bs in BOX_SIZES:
+            filename = f"{action['prefix']}_box{bs}.png"
+            make_labeled_qr(url, action["label"], OUT_DIR / filename, box_size=bs)
     
-    print(f"\n完了! 出力先: {OUT_DIR}")
+    print(f"\nDone! Output: {OUT_DIR}")
 
 
 if __name__ == "__main__":
