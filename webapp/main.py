@@ -244,14 +244,14 @@ async def direct_action_confirm(request: Request, action_type: str):
     if not allowed:
         return HTMLResponse(f"""
         <!DOCTYPE html>
-        <html>
+        <html lang="ja">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>送信制限中</title>
             <link rel="stylesheet" href="/style.css">
             <style>
-                .rate-limit-container {{
+                .page-container {{
                     min-height: 100vh;
                     display: flex;
                     flex-direction: column;
@@ -260,17 +260,67 @@ async def direct_action_confirm(request: Request, action_type: str):
                     text-align: center;
                     padding: 2rem;
                 }}
-                .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
-                h1 {{ color: var(--error); }}
-                .wait {{ font-size: 2rem; color: var(--warning); margin: 1rem 0; }}
-                a {{
+                .page-card {{
+                    background: var(--bg-card);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    border: 1px solid var(--border-glass);
+                    border-radius: 24px;
+                    padding: 3rem 2.5rem;
+                    max-width: 400px;
+                    width: 100%;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                    animation: fade-in 0.4s ease-out;
+                }}
+                @keyframes fade-in {{
+                    from {{ opacity: 0; transform: scale(0.95) translateY(10px); }}
+                    to {{ opacity: 1; transform: scale(1) translateY(0); }}
+                }}
+                .warning-icon {{
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, #FEE75C 0%, #FAA61A 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                    font-size: 2.5rem;
+                    box-shadow: 0 0 30px rgba(250, 166, 26, 0.4);
+                }}
+                h1 {{
+                    font-size: 1.75rem;
+                    font-weight: 700;
+                    margin-bottom: 0.75rem;
+                    color: var(--error);
+                }}
+                .description {{
+                    color: var(--text-secondary);
+                    margin-bottom: 1.5rem;
+                }}
+                .wait-time {{
+                    font-size: 3rem;
+                    font-weight: 700;
+                    color: var(--primary);
+                    margin-bottom: 0.5rem;
+                }}
+                .wait-label {{
+                    color: var(--text-muted);
+                    font-size: 0.9rem;
+                }}
+                .back-link {{
                     display: inline-block;
-                    margin-top: 1rem;
-                    padding: 0.75rem 1.5rem;
-                    background: var(--primary);
-                    color: #fff;
+                    margin-top: 1.5rem;
+                    padding: 0.875rem 1.75rem;
+                    background: var(--bg-tertiary);
+                    color: var(--text-primary);
                     text-decoration: none;
-                    border-radius: 0.5rem;
+                    border-radius: 12px;
+                    font-weight: 600;
+                    transition: all 0.2s;
+                }}
+                .back-link:hover {{
+                    background: var(--primary);
                 }}
             </style>
             <script>
@@ -281,13 +331,15 @@ async def direct_action_confirm(request: Request, action_type: str):
             <div class="theme-toggle" onclick="toggleTheme()" title="テーマ切り替え">
                 <span class="theme-icon">🌙</span>
             </div>
-            <div class="rate-limit-container">
-                <div class="icon">⏳</div>
-                <h1>送信制限中</h1>
-                <p>短時間に複数回送信されました</p>
-                <div class="wait">{wait_time}秒後に再試行可能</div>
-                <p>ページは自動でリロードされます</p>
-                <a href="/dashboard">ダッシュボードに戻る</a>
+            <div class="page-container">
+                <div class="page-card">
+                    <div class="warning-icon">⏳</div>
+                    <h1>送信制限中</h1>
+                    <p class="description">短時間に複数回送信されました</p>
+                    <div class="wait-time" id="countdown">{wait_time}</div>
+                    <p class="wait-label">秒後に再試行可能</p>
+                    <a href="/dashboard" class="back-link">ダッシュボードに戻る</a>
+                </div>
             </div>
             <script>
                 function getPreferredTheme() {{
@@ -305,6 +357,14 @@ async def direct_action_confirm(request: Request, action_type: str):
                     setTheme(current === 'dark' ? 'light' : 'dark');
                 }}
                 setTheme(getPreferredTheme());
+                
+                // カウントダウン表示
+                let count = {wait_time};
+                const countdownEl = document.getElementById('countdown');
+                setInterval(() => {{
+                    count--;
+                    if (count > 0) countdownEl.textContent = count;
+                }}, 1000);
             </script>
         </body>
         </html>
@@ -313,14 +373,14 @@ async def direct_action_confirm(request: Request, action_type: str):
     # 確認画面を表示
     return HTMLResponse(f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="ja">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>送信確認</title>
         <link rel="stylesheet" href="/style.css">
         <style>
-            .confirm-container {{
+            .page-container {{
                 min-height: 100vh;
                 display: flex;
                 flex-direction: column;
@@ -329,46 +389,111 @@ async def direct_action_confirm(request: Request, action_type: str):
                 text-align: center;
                 padding: 2rem;
             }}
-            .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
-            h1 {{ color: var(--primary); }}
-            .message {{ font-size: 1.5rem; margin: 1rem 0; color: var(--warning); }}
-            form {{ margin-top: 1.5rem; }}
-            button {{
+            .page-card {{
+                background: var(--bg-card);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid var(--border-glass);
+                border-radius: 24px;
+                padding: 3rem 2.5rem;
+                max-width: 400px;
+                width: 100%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                animation: fade-in 0.4s ease-out;
+            }}
+            @keyframes fade-in {{
+                from {{ opacity: 0; transform: scale(0.95) translateY(10px); }}
+                to {{ opacity: 1; transform: scale(1) translateY(0); }}
+            }}
+            .action-icon {{
+                width: 80px;
+                height: 80px;
+                background: linear-gradient(135deg, #5865F2 0%, #4752C4 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 1.5rem;
+                font-size: 2.5rem;
+                box-shadow: 0 0 30px rgba(88, 101, 242, 0.4);
+            }}
+            h1 {{
+                font-size: 1.75rem;
+                font-weight: 700;
+                margin-bottom: 1rem;
+                color: var(--text-primary);
+            }}
+            .action-message {{
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: var(--primary);
+                margin-bottom: 0.5rem;
+                padding: 0.75rem 1.5rem;
+                background: var(--bg-glass);
+                border-radius: 12px;
+                display: inline-block;
+            }}
+            .user-name {{
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                margin-top: 1rem;
+            }}
+            .button-group {{
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+                margin-top: 2rem;
+            }}
+            .submit-btn {{
                 padding: 1rem 2rem;
-                font-size: 1.2rem;
-                background: var(--success);
+                font-size: 1.1rem;
+                font-weight: 700;
+                background: linear-gradient(135deg, #57F287 0%, #3BA55D 100%);
                 color: #000;
                 border: none;
-                border-radius: 0.5rem;
+                border-radius: 12px;
                 cursor: pointer;
-                font-weight: bold;
+                transition: all 0.2s;
+                font-family: inherit;
             }}
-            button:hover {{ opacity: 0.9; }}
-            .cancel {{
-                display: inline-block;
-                margin-top: 1rem;
-                padding: 0.75rem 1.5rem;
-                background: var(--bg-card);
+            .submit-btn:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(87, 242, 135, 0.4);
+            }}
+            .submit-btn:active {{
+                transform: translateY(0);
+            }}
+            .cancel-btn {{
+                padding: 0.875rem 1.75rem;
+                background: var(--bg-tertiary);
                 color: var(--text-primary);
                 text-decoration: none;
-                border-radius: 0.5rem;
+                border-radius: 12px;
+                font-weight: 600;
+                transition: all 0.2s;
             }}
-            .user {{ color: var(--text-secondary); margin-top: 1rem; }}
+            .cancel-btn:hover {{
+                background: var(--bg-glass);
+            }}
         </style>
     </head>
     <body>
         <div class="theme-toggle" onclick="toggleTheme()" title="テーマ切り替え">
             <span class="theme-icon">🌙</span>
         </div>
-        <div class="confirm-container">
-            <div class="icon">📤</div>
-            <h1>送信確認</h1>
-            <p class="message">「{base_message}」を送信しますか？</p>
-            <form method="POST">
-                <button type="submit">送信する</button>
-            </form>
-            <a href="/dashboard" class="cancel">キャンセル</a>
-            <p class="user">by {username}</p>
+        <div class="page-container">
+            <div class="page-card">
+                <div class="action-icon">📤</div>
+                <h1>送信確認</h1>
+                <div class="action-message">{base_message}</div>
+                <p class="user-name">by {username}</p>
+                <div class="button-group">
+                    <form method="POST" style="margin: 0;">
+                        <button type="submit" class="submit-btn">送信する</button>
+                    </form>
+                    <a href="/dashboard" class="cancel-btn">キャンセル</a>
+                </div>
+            </div>
         </div>
         <script>
             function getPreferredTheme() {{
@@ -431,7 +556,7 @@ async def direct_action_execute(request: Request, action_type: str):
 
 @app.get("/action/{action_type}/done")
 async def direct_action_done(request: Request, action_type: str):
-    """送信完了画面（リロードしても再送信されない、5秒後に自動タブ閉じ）"""
+    """送信完了画面（5秒後にタブを閉じる、リダイレクトなし）"""
     user = require_auth(request)
     username = user.get("username", "不明")
     
@@ -439,7 +564,7 @@ async def direct_action_done(request: Request, action_type: str):
     
     return HTMLResponse(f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="ja">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -455,25 +580,90 @@ async def direct_action_done(request: Request, action_type: str):
                 text-align: center;
                 padding: 2rem;
             }}
-            .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
-            h1 {{ color: var(--success); margin-bottom: 0.5rem; }}
-            .countdown {{ 
-                color: var(--text-muted); 
-                margin-top: 1.5rem;
+            .done-card {{
+                background: var(--bg-card);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid var(--border-glass);
+                border-radius: 24px;
+                padding: 3rem 2.5rem;
+                max-width: 400px;
+                width: 100%;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                animation: fade-in 0.4s ease-out;
+            }}
+            @keyframes fade-in {{
+                from {{ opacity: 0; transform: scale(0.95) translateY(10px); }}
+                to {{ opacity: 1; transform: scale(1) translateY(0); }}
+            }}
+            .success-icon {{
+                width: 80px;
+                height: 80px;
+                background: linear-gradient(135deg, #57F287 0%, #3BA55D 100%);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 1.5rem;
+                font-size: 2.5rem;
+                box-shadow: 0 0 30px rgba(87, 242, 135, 0.4);
+            }}
+            h1 {{
+                font-size: 2rem;
+                font-weight: 700;
+                margin-bottom: 0.5rem;
+                color: var(--text-primary);
+            }}
+            .sent-message {{
+                color: var(--text-secondary);
+                margin-bottom: 0.25rem;
+            }}
+            .user-name {{
+                color: var(--text-muted);
                 font-size: 0.9rem;
             }}
-            .countdown span {{ 
-                color: var(--warning);
-                font-weight: bold;
+            .countdown {{
+                margin-top: 2rem;
+                padding: 1rem;
+                background: var(--bg-glass);
+                border-radius: 12px;
+                color: var(--text-secondary);
+                font-size: 0.9rem;
             }}
-            a {{
-                display: inline-block;
+            .countdown-number {{
+                color: var(--primary);
+                font-weight: 700;
+                font-size: 1.1rem;
+            }}
+            .close-failed {{
+                display: none;
+                margin-top: 1rem;
+                color: var(--text-muted);
+                font-size: 0.85rem;
+            }}
+            .close-failed.show {{
+                display: block;
+            }}
+            .manual-close-btn {{
+                display: none;
                 margin-top: 1rem;
                 padding: 0.75rem 1.5rem;
                 background: var(--primary);
                 color: #fff;
-                text-decoration: none;
-                border-radius: 0.5rem;
+                border: none;
+                border-radius: 10px;
+                font-family: inherit;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+            }}
+            .manual-close-btn.show {{
+                display: inline-block;
+            }}
+            .manual-close-btn:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(88, 101, 242, 0.4);
             }}
         </style>
     </head>
@@ -482,12 +672,21 @@ async def direct_action_done(request: Request, action_type: str):
             <span class="theme-icon">🌙</span>
         </div>
         <div class="done-container">
-            <div class="icon">✅</div>
-            <h1>{base_message}</h1>
-            <p>Discordに送信しました</p>
-            <p>by {username}</p>
-            <a href="/dashboard">ダッシュボードに戻る</a>
-            <p class="countdown">このタブは <span id="countdown">5</span> 秒後に自動で閉じます</p>
+            <div class="done-card">
+                <div class="success-icon">✓</div>
+                <h1>{base_message}</h1>
+                <p class="sent-message">Discordに送信しました</p>
+                <p class="user-name">by {username}</p>
+                <div class="countdown">
+                    <span class="countdown-number" id="countdown">5</span> 秒後にこのタブを閉じます
+                </div>
+                <p class="close-failed" id="closeFailed">
+                    タブを自動で閉じられませんでした。<br>手動で閉じてください。
+                </p>
+                <button class="manual-close-btn" id="manualClose" onclick="window.close()">
+                    タブを閉じる
+                </button>
+            </div>
         </div>
         <script>
             // テーマ管理
@@ -507,19 +706,25 @@ async def direct_action_done(request: Request, action_type: str):
             }}
             setTheme(getPreferredTheme());
             
-            // 5秒後に自動タブ閉じ
+            // 5秒後に自動タブ閉じ（リダイレクトなし）
             let count = 5;
             const countdownEl = document.getElementById('countdown');
+            const closeFailedEl = document.getElementById('closeFailed');
+            const manualCloseEl = document.getElementById('manualClose');
+            
             const timer = setInterval(() => {{
                 count--;
                 countdownEl.textContent = count;
                 if (count <= 0) {{
                     clearInterval(timer);
+                    // タブを閉じる
                     window.close();
-                    // タブが閉じられない場合はダッシュボードにリダイレクト
+                    // 閉じられなかった場合（1秒後にまだ開いていれば）メッセージ表示
                     setTimeout(() => {{
-                        window.location.href = '/dashboard';
-                    }}, 500);
+                        closeFailedEl.classList.add('show');
+                        manualCloseEl.classList.add('show');
+                        document.querySelector('.countdown').style.display = 'none';
+                    }}, 1000);
                 }}
             }}, 1000);
         </script>
