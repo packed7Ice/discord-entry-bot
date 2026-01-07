@@ -45,7 +45,14 @@ async def login(request: Request):
     """Discord OAuth2 ログイン開始"""
     state = generate_state()
     response = RedirectResponse(url=get_authorize_url(state))
-    response.set_cookie("oauth_state", state, max_age=600, httponly=True)
+    response.set_cookie(
+        "oauth_state", 
+        state, 
+        max_age=600, 
+        httponly=True,
+        samesite="lax",
+        secure=True,  # HTTPSでのみ送信
+    )
     return response
 
 
