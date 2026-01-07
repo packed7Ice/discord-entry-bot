@@ -184,12 +184,13 @@ async def scan_qr(request: Request):
 
 
 # ---------------------------------------------------------------------------
-# 直接リンクからアクション実行（確認画面 + レート制限）
+# 直接リンクからアクション実行（確認画面 + レート制限 + ワンタイムトークン）
 # ---------------------------------------------------------------------------
 
 # レート制限用のインメモリストア（user_id -> [timestamp, timestamp, ...]）
 from collections import defaultdict
 import time
+import secrets
 
 rate_limit_store: dict[str, list[float]] = defaultdict(list)
 RATE_LIMIT_WINDOW = 60  # 秒
@@ -217,6 +218,49 @@ def check_rate_limit(user_id: str) -> tuple[bool, int]:
 def record_request(user_id: str):
     """リクエストを記録"""
     rate_limit_store[user_id].append(time.time())
+
+
+# ワンタイムトークン管理（再送信防止）
+# token -> (user_id, action_type, created_at)
+form_tokens: dict[str, tuple[str, str, float]] = {}
+TOKEN_EXPIRY = 60  # トークンの有効期限（秒）
+
+
+def generate_form_token(user_id: str, action_type: str) -> str:
+    """フォーム用のワンタイムトークンを生成"""
+    # 古いトークンを削除
+    now = time.time()
+    expired_tokens = [
+        token for token, (_, _, created_at) in form_tokens.items()
+        if now - created_at > TOKEN_EXPIRY
+    ]
+    for token in expired_tokens:
+        del form_tokens[token]
+    
+    # 新しいトークンを生成
+    token = secrets.token_urlsafe(32)
+    form_tokens[token] = (user_id, action_type, now)
+    return token
+
+
+def validate_form_token(token: str, user_id: str, action_type: str) -> bool:
+    """トークンを検証し、有効なら消費する（一度きり）"""
+    if token not in form_tokens:
+        return False
+    
+    stored_user_id, stored_action_type, created_at = form_tokens[token]
+    
+    # トークンの検証
+    if stored_user_id != user_id or stored_action_type != action_type:
+        return False
+    
+    if time.time() - created_at > TOKEN_EXPIRY:
+        del form_tokens[token]
+        return False
+    
+    # トークンを消費（一度きり）
+    del form_tokens[token]
+    return True
 
 
 # アクションマッピング
@@ -370,6 +414,9 @@ async def direct_action_confirm(request: Request, action_type: str):
         </html>
         """, status_code=429)
     
+    # ワンタイムトークンを生成
+    form_token = generate_form_token(user_id, action_type)
+    
     # 確認画面を表示
     return HTMLResponse(f"""
     <!DOCTYPE html>
@@ -489,6 +536,7 @@ async def direct_action_confirm(request: Request, action_type: str):
                 <p class="user-name">by {username}</p>
                 <div class="button-group">
                     <form method="POST" style="margin: 0;">
+                        <input type="hidden" name="token" value="{form_token}">
                         <button type="submit" class="submit-btn">送信する</button>
                     </form>
                     <a href="/dashboard" class="cancel-btn">キャンセル</a>
@@ -519,13 +567,125 @@ async def direct_action_confirm(request: Request, action_type: str):
 
 @app.post("/action/{action_type}")
 async def direct_action_execute(request: Request, action_type: str):
-    """実際にWebhookを送信（認証必須）"""
+    """実際にWebhookを送信（認証必須、ワンタイムトークン検証）"""
     user = require_auth(request)
     user_id = user.get("user_id", "")
     username = user.get("username", "不明")
     
     if action_type not in ACTION_MAP:
         raise HTTPException(400, "不明なアクションです")
+    
+    # フォームデータからトークンを取得
+    form_data = await request.form()
+    token = form_data.get("token", "")
+    
+    # トークン検証（一度使用したトークンは無効）
+    if not validate_form_token(token, user_id, action_type):
+        # トークンが無効 = 既に送信済みまたは期限切れ
+        base_message = ACTION_MAP[action_type]
+        return HTMLResponse(f"""
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>送信エラー</title>
+            <link rel="stylesheet" href="/style.css">
+            <style>
+                .page-container {{
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    text-align: center;
+                    padding: 2rem;
+                }}
+                .page-card {{
+                    background: var(--bg-card);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    border: 1px solid var(--border-glass);
+                    border-radius: 24px;
+                    padding: 3rem 2.5rem;
+                    max-width: 400px;
+                    width: 100%;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                }}
+                .error-icon {{
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, #ED4245 0%, #c03537 100%);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 1.5rem;
+                    font-size: 2.5rem;
+                    box-shadow: 0 0 30px rgba(237, 66, 69, 0.4);
+                }}
+                h1 {{
+                    font-size: 1.75rem;
+                    font-weight: 700;
+                    margin-bottom: 0.75rem;
+                    color: var(--error);
+                }}
+                .description {{
+                    color: var(--text-secondary);
+                    margin-bottom: 1.5rem;
+                }}
+                .retry-link {{
+                    display: inline-block;
+                    margin-top: 1rem;
+                    padding: 0.875rem 1.75rem;
+                    background: var(--primary);
+                    color: #fff;
+                    text-decoration: none;
+                    border-radius: 12px;
+                    font-weight: 600;
+                    transition: all 0.2s;
+                }}
+                .retry-link:hover {{
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 16px rgba(88, 101, 242, 0.4);
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="theme-toggle" onclick="toggleTheme()" title="テーマ切り替え">
+                <span class="theme-icon">🌙</span>
+            </div>
+            <div class="page-container">
+                <div class="page-card">
+                    <div class="error-icon">✕</div>
+                    <h1>送信できません</h1>
+                    <p class="description">
+                        この送信は既に完了しているか、<br>
+                        有効期限が切れています。
+                    </p>
+                    <a href="/action/{action_type}" class="retry-link">もう一度試す</a>
+                </div>
+            </div>
+            <script>
+                function getPreferredTheme() {{
+                    const saved = localStorage.getItem('theme');
+                    if (saved) return saved;
+                    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+                }}
+                function setTheme(theme) {{
+                    document.documentElement.setAttribute('data-theme', theme);
+                    localStorage.setItem('theme', theme);
+                    document.querySelector('.theme-icon').textContent = theme === 'light' ? '🌙' : '☀️';
+                }}
+                function toggleTheme() {{
+                    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+                    setTheme(current === 'dark' ? 'light' : 'dark');
+                }}
+                setTheme(getPreferredTheme());
+            </script>
+        </body>
+        </html>
+        """, status_code=400)
     
     # レート制限チェック
     allowed, wait_time = check_rate_limit(user_id)
@@ -549,6 +709,7 @@ async def direct_action_execute(request: Request, action_type: str):
     
     # リクエストを記録
     record_request(user_id)
+
     
     # 成功ページにリダイレクト（PRGパターン）
     return RedirectResponse(url=f"/action/{action_type}/done", status_code=303)

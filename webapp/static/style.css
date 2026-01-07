@@ -110,34 +110,35 @@ body {
     position: fixed;
     top: 1rem;
     right: 1rem;
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     background: var(--bg-card);
     backdrop-filter: var(--blur);
     -webkit-backdrop-filter: var(--blur);
-    border: 1px solid var(--border-glass);
+    border: 2px solid var(--border-color);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
     z-index: 1000;
     transition: var(--transition);
 }
 
 .theme-toggle:hover {
-    transform: scale(1.1);
+    transform: scale(1.15);
     box-shadow: var(--shadow-glow);
+    border-color: var(--primary);
 }
 
 .theme-toggle:active {
-    transform: scale(0.95);
+    transform: scale(1.05);
 }
 
 .theme-icon {
-    font-size: 1.4rem;
-    transition: var(--transition);
+    font-size: 1.8rem;
+    line-height: 1;
 }
 
 /* ==========================================================================
