@@ -294,6 +294,14 @@ async def direct_action_confirm(request: Request, action_type: str):
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>送信制限中</title>
             <link rel="stylesheet" href="/style.css">
+            <script>
+                // 早期テーマ適用（ちらつき防止）
+                (function() {{
+                    var saved = localStorage.getItem('theme');
+                    var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                    document.documentElement.setAttribute('data-theme', theme);
+                }})();
+            </script>
             <style>
                 .page-container {{
                     min-height: 100vh;
@@ -426,6 +434,13 @@ async def direct_action_confirm(request: Request, action_type: str):
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>送信確認</title>
         <link rel="stylesheet" href="/style.css">
+        <script>
+            (function() {{
+                var saved = localStorage.getItem('theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                document.documentElement.setAttribute('data-theme', theme);
+            }})();
+        </script>
         <style>
             .page-container {{
                 min-height: 100vh;
@@ -591,6 +606,13 @@ async def direct_action_execute(request: Request, action_type: str):
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>送信エラー</title>
             <link rel="stylesheet" href="/style.css">
+            <script>
+                (function() {{
+                    var saved = localStorage.getItem('theme');
+                    var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                    document.documentElement.setAttribute('data-theme', theme);
+                }})();
+            </script>
             <style>
                 .page-container {{
                     min-height: 100vh;
@@ -731,6 +753,13 @@ async def direct_action_done(request: Request, action_type: str):
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>送信完了</title>
         <link rel="stylesheet" href="/style.css">
+        <script>
+            (function() {{
+                var saved = localStorage.getItem('theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                document.documentElement.setAttribute('data-theme', theme);
+            }})();
+        </script>
         <style>
             .done-container {{
                 min-height: 100vh;
