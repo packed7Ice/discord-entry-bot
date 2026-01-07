@@ -2,28 +2,45 @@
    QR Scanner Web App - Styles
    ========================================================================== */
 
-:root {
+/* Dark Theme (default) */
+:root,
+[data-theme="dark"] {
     /* Colors */
     --primary: #5865F2;
     --primary-dark: #4752C4;
     --success: #3BA55D;
     --error: #ED4245;
     --warning: #FAA61A;
-    
+
     /* Backgrounds */
     --bg-dark: #1a1a2e;
     --bg-card: #16213e;
     --bg-overlay: rgba(0, 0, 0, 0.7);
-    
+    --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
+
     /* Text */
     --text-primary: #ffffff;
     --text-secondary: #b9bbbe;
     --text-muted: #72767d;
-    
+
     /* Misc */
     --border-radius: 12px;
     --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     --transition: all 0.3s ease;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+    --bg-dark: #f5f5f5;
+    --bg-card: #ffffff;
+    --bg-overlay: rgba(255, 255, 255, 0.9);
+    --bg-gradient: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+
+    --text-primary: #1a1a2e;
+    --text-secondary: #4a4a5a;
+    --text-muted: #72767d;
+
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -32,12 +49,43 @@
     box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
     height: 100%;
     font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
-    background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f23 100%);
+    background: var(--bg-gradient);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ==========================================================================
+   Theme Toggle Button
+   ========================================================================== */
+
+.theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    background: var(--bg-card);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    transition: var(--transition);
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+}
+
+.theme-icon {
+    font-size: 1.3rem;
 }
 
 /* ==========================================================================
@@ -244,9 +292,12 @@ html, body {
 }
 
 @keyframes pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4);
     }
+
     50% {
         box-shadow: 0 0 0 10px rgba(88, 101, 242, 0);
     }
@@ -325,6 +376,7 @@ html, body {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -358,6 +410,94 @@ html, body {
 }
 
 /* ==========================================================================
+   Dashboard
+   ========================================================================== */
+
+.dashboard {
+    justify-content: center;
+    text-align: center;
+}
+
+.dashboard .logo {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.dashboard h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard .subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.menu {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.menu-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    color: var(--text-primary);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.menu-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.menu-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.menu-label {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.menu-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.dashboard .user-info {
+    margin-top: 2rem;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dashboard .user-name {
+    color: var(--text-secondary);
+}
+
+.dashboard .logout-btn {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.dashboard .logout-btn:hover {
+    color: var(--error);
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
 
@@ -365,15 +505,15 @@ html, body {
     .container {
         padding: 16px;
     }
-    
+
     .card {
         padding: 30px 20px;
     }
-    
+
     .header h1 {
         font-size: 1.1rem;
     }
-    
+
     .scanner-wrapper {
         border-radius: 8px;
     }

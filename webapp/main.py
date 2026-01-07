@@ -249,29 +249,25 @@ async def direct_action_confirm(request: Request, action_type: str):
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>送信制限中</title>
+            <link rel="stylesheet" href="/style.css">
             <style>
-                body {{
-                    font-family: 'Segoe UI', sans-serif;
-                    background: #1a1a2e;
-                    color: #fff;
+                .rate-limit-container {{
+                    min-height: 100vh;
                     display: flex;
+                    flex-direction: column;
                     justify-content: center;
                     align-items: center;
-                    min-height: 100vh;
-                    margin: 0;
-                }}
-                .container {{
                     text-align: center;
                     padding: 2rem;
                 }}
                 .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
-                h1 {{ color: #ed4245; }}
-                .wait {{ font-size: 2rem; color: #faa61a; margin: 1rem 0; }}
+                h1 {{ color: var(--error); }}
+                .wait {{ font-size: 2rem; color: var(--warning); margin: 1rem 0; }}
                 a {{
                     display: inline-block;
                     margin-top: 1rem;
                     padding: 0.75rem 1.5rem;
-                    background: #5865f2;
+                    background: var(--primary);
                     color: #fff;
                     text-decoration: none;
                     border-radius: 0.5rem;
@@ -282,13 +278,34 @@ async def direct_action_confirm(request: Request, action_type: str):
             </script>
         </head>
         <body>
-            <div class="container">
+            <div class="theme-toggle" onclick="toggleTheme()" title="テーマ切り替え">
+                <span class="theme-icon">🌙</span>
+            </div>
+            <div class="rate-limit-container">
                 <div class="icon">⏳</div>
                 <h1>送信制限中</h1>
                 <p>短時間に複数回送信されました</p>
                 <div class="wait">{wait_time}秒後に再試行可能</div>
                 <p>ページは自動でリロードされます</p>
+                <a href="/dashboard">ダッシュボードに戻る</a>
             </div>
+            <script>
+                function getPreferredTheme() {{
+                    const saved = localStorage.getItem('theme');
+                    if (saved) return saved;
+                    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+                }}
+                function setTheme(theme) {{
+                    document.documentElement.setAttribute('data-theme', theme);
+                    localStorage.setItem('theme', theme);
+                    document.querySelector('.theme-icon').textContent = theme === 'light' ? '🌙' : '☀️';
+                }}
+                function toggleTheme() {{
+                    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+                    setTheme(current === 'dark' ? 'light' : 'dark');
+                }}
+                setTheme(getPreferredTheme());
+            </script>
         </body>
         </html>
         """, status_code=429)
@@ -301,59 +318,75 @@ async def direct_action_confirm(request: Request, action_type: str):
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>送信確認</title>
+        <link rel="stylesheet" href="/style.css">
         <style>
-            body {{
-                font-family: 'Segoe UI', sans-serif;
-                background: #1a1a2e;
-                color: #fff;
+            .confirm-container {{
+                min-height: 100vh;
                 display: flex;
+                flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                min-height: 100vh;
-                margin: 0;
-            }}
-            .container {{
                 text-align: center;
                 padding: 2rem;
             }}
             .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
-            h1 {{ color: #5865f2; }}
-            .message {{ font-size: 1.5rem; margin: 1rem 0; color: #faa61a; }}
+            h1 {{ color: var(--primary); }}
+            .message {{ font-size: 1.5rem; margin: 1rem 0; color: var(--warning); }}
             form {{ margin-top: 1.5rem; }}
             button {{
                 padding: 1rem 2rem;
                 font-size: 1.2rem;
-                background: #57f287;
+                background: var(--success);
                 color: #000;
                 border: none;
                 border-radius: 0.5rem;
                 cursor: pointer;
                 font-weight: bold;
             }}
-            button:hover {{ background: #3ba55c; }}
+            button:hover {{ opacity: 0.9; }}
             .cancel {{
                 display: inline-block;
                 margin-top: 1rem;
                 padding: 0.75rem 1.5rem;
-                background: #4f545c;
-                color: #fff;
+                background: var(--bg-card);
+                color: var(--text-primary);
                 text-decoration: none;
                 border-radius: 0.5rem;
             }}
-            .user {{ color: #b9bbbe; margin-top: 1rem; }}
+            .user {{ color: var(--text-secondary); margin-top: 1rem; }}
         </style>
     </head>
     <body>
-        <div class="container">
+        <div class="theme-toggle" onclick="toggleTheme()" title="テーマ切り替え">
+            <span class="theme-icon">🌙</span>
+        </div>
+        <div class="confirm-container">
             <div class="icon">📤</div>
             <h1>送信確認</h1>
             <p class="message">「{base_message}」を送信しますか？</p>
             <form method="POST">
                 <button type="submit">送信する</button>
             </form>
-            <a href="/" class="cancel">キャンセル</a>
+            <a href="/dashboard" class="cancel">キャンセル</a>
             <p class="user">by {username}</p>
         </div>
+        <script>
+            function getPreferredTheme() {{
+                const saved = localStorage.getItem('theme');
+                if (saved) return saved;
+                return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            }}
+            function setTheme(theme) {{
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                document.querySelector('.theme-icon').textContent = theme === 'light' ? '🌙' : '☀️';
+            }}
+            function toggleTheme() {{
+                const current = document.documentElement.getAttribute('data-theme') || 'dark';
+                setTheme(current === 'dark' ? 'light' : 'dark');
+            }}
+            setTheme(getPreferredTheme());
+        </script>
     </body>
     </html>
     """)
@@ -398,7 +431,7 @@ async def direct_action_execute(request: Request, action_type: str):
 
 @app.get("/action/{action_type}/done")
 async def direct_action_done(request: Request, action_type: str):
-    """送信完了画面（リロードしても再送信されない）"""
+    """送信完了画面（リロードしても再送信されない、5秒後に自動タブ閉じ）"""
     user = require_auth(request)
     username = user.get("username", "不明")
     
@@ -411,28 +444,33 @@ async def direct_action_done(request: Request, action_type: str):
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>送信完了</title>
+        <link rel="stylesheet" href="/style.css">
         <style>
-            body {{
-                font-family: 'Segoe UI', sans-serif;
-                background: #1a1a2e;
-                color: #fff;
+            .done-container {{
+                min-height: 100vh;
                 display: flex;
+                flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                min-height: 100vh;
-                margin: 0;
-            }}
-            .container {{
                 text-align: center;
                 padding: 2rem;
             }}
             .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
-            h1 {{ color: #57f287; }}
+            h1 {{ color: var(--success); margin-bottom: 0.5rem; }}
+            .countdown {{ 
+                color: var(--text-muted); 
+                margin-top: 1.5rem;
+                font-size: 0.9rem;
+            }}
+            .countdown span {{ 
+                color: var(--warning);
+                font-weight: bold;
+            }}
             a {{
                 display: inline-block;
                 margin-top: 1rem;
                 padding: 0.75rem 1.5rem;
-                background: #5865f2;
+                background: var(--primary);
                 color: #fff;
                 text-decoration: none;
                 border-radius: 0.5rem;
@@ -440,13 +478,51 @@ async def direct_action_done(request: Request, action_type: str):
         </style>
     </head>
     <body>
-        <div class="container">
+        <div class="theme-toggle" onclick="toggleTheme()" title="テーマ切り替え">
+            <span class="theme-icon">🌙</span>
+        </div>
+        <div class="done-container">
             <div class="icon">✅</div>
             <h1>{base_message}</h1>
             <p>Discordに送信しました</p>
             <p>by {username}</p>
-            <a href="/">スキャナーに戻る</a>
+            <a href="/dashboard">ダッシュボードに戻る</a>
+            <p class="countdown">このタブは <span id="countdown">5</span> 秒後に自動で閉じます</p>
         </div>
+        <script>
+            // テーマ管理
+            function getPreferredTheme() {{
+                const saved = localStorage.getItem('theme');
+                if (saved) return saved;
+                return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            }}
+            function setTheme(theme) {{
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                document.querySelector('.theme-icon').textContent = theme === 'light' ? '🌙' : '☀️';
+            }}
+            function toggleTheme() {{
+                const current = document.documentElement.getAttribute('data-theme') || 'dark';
+                setTheme(current === 'dark' ? 'light' : 'dark');
+            }}
+            setTheme(getPreferredTheme());
+            
+            // 5秒後に自動タブ閉じ
+            let count = 5;
+            const countdownEl = document.getElementById('countdown');
+            const timer = setInterval(() => {{
+                count--;
+                countdownEl.textContent = count;
+                if (count <= 0) {{
+                    clearInterval(timer);
+                    window.close();
+                    // タブが閉じられない場合はダッシュボードにリダイレクト
+                    setTimeout(() => {{
+                        window.location.href = '/dashboard';
+                    }}, 500);
+                }}
+            }}, 1000);
+        </script>
     </body>
     </html>
     """)
@@ -458,12 +534,33 @@ async def direct_action_done(request: Request, action_type: str):
 
 @app.get("/")
 async def index(request: Request):
-    """メインページ（認証チェック付き）"""
+    """ルート: ダッシュボードにリダイレクト"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login.html", status_code=302)
+    return RedirectResponse(url="/dashboard", status_code=302)
+
+
+@app.get("/dashboard")
+async def dashboard(request: Request):
+    """メインダッシュボード（認証チェック付き）"""
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login.html", status_code=302)
     
-    # index.htmlを返す
+    dashboard_path = STATIC_DIR / "dashboard.html"
+    if dashboard_path.exists():
+        return HTMLResponse(dashboard_path.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>ダッシュボード準備中</h1>")
+
+
+@app.get("/scanner")
+async def scanner(request: Request):
+    """QRスキャナーページ（認証チェック付き）"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login.html", status_code=302)
+    
     index_path = STATIC_DIR / "index.html"
     if index_path.exists():
         return HTMLResponse(index_path.read_text(encoding="utf-8"))
@@ -481,3 +578,4 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

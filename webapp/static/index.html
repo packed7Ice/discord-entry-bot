@@ -5,15 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="description" content="QRコードスキャナー - Discord連携">
-    <title>discord-entry-bot</title>
+    <title>discord-entry-bot - スキャナー</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
+    <div class="theme-toggle" onclick="toggleTheme()" title="テーマ切り替え">
+        <span class="theme-icon">🌙</span>
+    </div>
+
     <div class="container scanner-container">
         <!-- ヘッダー -->
         <header class="header">
-            <h1>QR Scanner</h1>
+            <a href="/dashboard" style="text-decoration: none; color: inherit;">
+                <h1>← QR Scanner</h1>
+            </a>
             <div class="user-info">
                 <span id="username">---</span>
                 <a href="/auth/logout" class="btn-logout">ログアウト</a>
@@ -51,6 +57,24 @@
     <!-- jsQR ライブラリ (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="/scanner.js"></script>
+    <script>
+        // テーマ管理
+        function getPreferredTheme() {
+            const saved = localStorage.getItem('theme');
+            if (saved) return saved;
+            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            document.querySelector('.theme-icon').textContent = theme === 'light' ? '🌙' : '☀️';
+        }
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+        setTheme(getPreferredTheme());
+    </script>
 </body>
 
 </html>
