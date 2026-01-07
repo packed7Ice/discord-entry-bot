@@ -199,7 +199,13 @@ QT_QPA_PLATFORM=wayland python3 qr_scanner_service.py
 
 - **スマートフォン対応**: ブラウザからカメラでQRスキャン
 - **Discord認証**: サーバーメンバーのみがアクセス可能
-- **無料ホスティング**: Render.com で無料運用可能
+- **ダッシュボード**: メインページからスキャナーや各機能にアクセス
+- **テーマ切り替え**: ダーク/ライトモード対応（デバイス設定自動検出＋手動切り替え）
+- **直接リンク送信**: QRスキャンなしでリンクからWebhook送信
+- **レート制限**: 1分間に3回以上の送信を制限（スパム防止）
+- **確認画面**: 送信前に確認ダイアログを表示
+- **自動タブ閉じ**: 送信完了後5秒でタブを自動クローズ
+- **Google Cloud Run**: 高速起動（5-10秒）でホスティング
 
 ### ファイル構成
 
@@ -210,11 +216,23 @@ webapp/
 ├── config.py         # 設定読み込み
 ├── requirements.txt  # 依存パッケージ
 └── static/
-    ├── index.html    # スキャナーUI
+    ├── dashboard.html # メインダッシュボード
+    ├── index.html    # QRスキャナーUI
     ├── login.html    # ログイン画面
-    ├── style.css     # スタイル
+    ├── style.css     # スタイル（テーマ対応）
     └── scanner.js    # QRスキャン処理
 ```
+
+### URL 構成
+
+| URL | 説明 |
+|-----|------|
+| `/` | ダッシュボードにリダイレクト |
+| `/dashboard` | メインダッシュボード |
+| `/scanner` | QRスキャナー |
+| `/action/open` | 「あけた」を送信（確認画面あり） |
+| `/action/close` | 「しめた」を送信（確認画面あり） |
+| `/action/test` | 「test」を送信（確認画面あり） |
 
 ### セットアップ
 
@@ -225,7 +243,7 @@ webapp/
 3. 左メニュー「OAuth2」→「General」を開く
 4. 「Redirects」に以下を追加:
    - ローカル: `http://localhost:8000/auth/callback`
-   - 本番: `https://your-app.onrender.com/auth/callback`
+   - 本番: `https://your-app.run.app/auth/callback`
 5. **Client ID** と **Client Secret** をメモ
 
 #### 2. 環境変数を設定
@@ -261,30 +279,39 @@ uvicorn main:app --reload --port 8000
 
 ブラウザで http://localhost:8000 にアクセス。
 
-### Render.com へのデプロイ
+### Google Cloud Run へのデプロイ
 
-#### 1. GitHub にプッシュ
+#### 1. 前提条件
+
+- Google Cloud アカウント
+- gcloud CLI インストール済み
+
+#### 2. デプロイ
 
 ```bash
-git add .
-git commit -m "Add web app"
-git push origin main
+# gcloud 認証
+gcloud auth login
+gcloud config set project your-project-id
+
+# Docker 認証設定
+gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+
+# ビルド & プッシュ
+docker build -t discord-entry-bot .
+docker tag discord-entry-bot asia-northeast1-docker.pkg.dev/your-project/cloud-run-source-deploy/discord-entry-bot:latest
+docker push asia-northeast1-docker.pkg.dev/your-project/cloud-run-source-deploy/discord-entry-bot:latest
+
+# Cloud Run にデプロイ
+gcloud run deploy discord-entry-bot \
+  --image asia-northeast1-docker.pkg.dev/your-project/cloud-run-source-deploy/discord-entry-bot:latest \
+  --region asia-northeast1 \
+  --allow-unauthenticated \
+  --port 8080
 ```
-
-#### 2. Render.com で新規 Web Service 作成
-
-1. [Render.com](https://render.com) にログイン
-2. 「New」→「Web Service」
-3. GitHub リポジトリを接続
-4. 設定:
-   - **Name**: `discord-entry-bot`
-   - **Runtime**: Python
-   - **Build Command**: `pip install -r webapp/requirements.txt`
-   - **Start Command**: `cd webapp && uvicorn main:app --host 0.0.0.0 --port $PORT`
 
 #### 3. 環境変数を設定
 
-Render のダッシュボードで Environment Variables を追加:
+Cloud Run コンソールで環境変数を設定：
 
 | 変数名 | 値 |
 |--------|-----|
@@ -295,21 +322,28 @@ Render のダッシュボードで Environment Variables を追加:
 | `DISCORD_CLIENT_SECRET` | OAuth2 Client Secret |
 | `DISCORD_GUILD_ID` | サーバーID |
 | `SESSION_SECRET` | ランダム文字列 |
-| `BASE_URL` | `https://your-app.onrender.com` |
+| `BASE_URL` | `https://your-app.run.app` |
 
 #### 4. Discord Redirect URI を更新
 
-Discord Developer Portal で Redirect URI に本番URLを追加:
-```
-https://your-app.onrender.com/auth/callback
+Discord Developer Portal で Redirect URI に本番URLを追加。
+
+### QRコード生成スクリプト
+
+```bash
+# QRトークン画像を生成
+python make_qr_tokens.py
+
+# 直接リンク用QRコードを生成
+python make_action_qr.py
 ```
 
 ### 注意事項
 
-- **無料枠の制限**: 15分間アクセスがないとスリープ（初回アクセスに数秒かかる）
-- **HTTPS必須**: カメラアクセスにはHTTPS接続が必要（Render.comは自動でHTTPS）
+- **Cloud Run**: コールドスタート 5-10秒（Render.comの30-60秒より高速）
+- **HTTPS必須**: カメラアクセスにはHTTPS接続が必要
+- **レート制限**: 1分間に3回以上送信すると一時的にブロック
 
 ## ライセンス
 
 Apache License 2.0
-
