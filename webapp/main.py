@@ -184,27 +184,197 @@ async def scan_qr(request: Request):
 
 
 # ---------------------------------------------------------------------------
-# 直接リンクからアクション実行
+# 直接リンクからアクション実行（確認画面 + レート制限）
 # ---------------------------------------------------------------------------
 
+# レート制限用のインメモリストア（user_id -> [timestamp, timestamp, ...]）
+from collections import defaultdict
+import time
+
+rate_limit_store: dict[str, list[float]] = defaultdict(list)
+RATE_LIMIT_WINDOW = 60  # 秒
+RATE_LIMIT_MAX = 3  # 1分間の最大リクエスト数
+
+
+def check_rate_limit(user_id: str) -> tuple[bool, int]:
+    """レート制限をチェック。(許可されるか, 残り秒数)"""
+    now = time.time()
+    # 古いエントリを削除
+    rate_limit_store[user_id] = [
+        ts for ts in rate_limit_store[user_id] 
+        if now - ts < RATE_LIMIT_WINDOW
+    ]
+    
+    if len(rate_limit_store[user_id]) >= RATE_LIMIT_MAX:
+        # 最も古いリクエストからの経過時間を計算
+        oldest = min(rate_limit_store[user_id])
+        wait_time = int(RATE_LIMIT_WINDOW - (now - oldest)) + 1
+        return False, wait_time
+    
+    return True, 0
+
+
+def record_request(user_id: str):
+    """リクエストを記録"""
+    rate_limit_store[user_id].append(time.time())
+
+
+# アクションマッピング
+ACTION_MAP = {
+    "open": "あけた",
+    "close": "しめた",
+    "test": "test",
+}
+
+
 @app.get("/action/{action_type}")
-async def direct_action(request: Request, action_type: str):
-    """リンクをクリックするだけでWebhookを送信（認証必須）"""
+async def direct_action_confirm(request: Request, action_type: str):
+    """確認画面を表示（認証必須）"""
+    user = require_auth(request)
+    username = user.get("username", "不明")
+    user_id = user.get("user_id", "")
+    
+    if action_type not in ACTION_MAP:
+        raise HTTPException(400, "不明なアクションです")
+    
+    base_message = ACTION_MAP[action_type]
+    
+    # レート制限チェック
+    allowed, wait_time = check_rate_limit(user_id)
+    if not allowed:
+        return HTMLResponse(f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>送信制限中</title>
+            <style>
+                body {{
+                    font-family: 'Segoe UI', sans-serif;
+                    background: #1a1a2e;
+                    color: #fff;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    margin: 0;
+                }}
+                .container {{
+                    text-align: center;
+                    padding: 2rem;
+                }}
+                .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
+                h1 {{ color: #ed4245; }}
+                .wait {{ font-size: 2rem; color: #faa61a; margin: 1rem 0; }}
+                a {{
+                    display: inline-block;
+                    margin-top: 1rem;
+                    padding: 0.75rem 1.5rem;
+                    background: #5865f2;
+                    color: #fff;
+                    text-decoration: none;
+                    border-radius: 0.5rem;
+                }}
+            </style>
+            <script>
+                setTimeout(() => location.reload(), {wait_time * 1000});
+            </script>
+        </head>
+        <body>
+            <div class="container">
+                <div class="icon">⏳</div>
+                <h1>送信制限中</h1>
+                <p>短時間に複数回送信されました</p>
+                <div class="wait">{wait_time}秒後に再試行可能</div>
+                <p>ページは自動でリロードされます</p>
+            </div>
+        </body>
+        </html>
+        """, status_code=429)
+    
+    # 確認画面を表示
+    return HTMLResponse(f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>送信確認</title>
+        <style>
+            body {{
+                font-family: 'Segoe UI', sans-serif;
+                background: #1a1a2e;
+                color: #fff;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+            }}
+            .container {{
+                text-align: center;
+                padding: 2rem;
+            }}
+            .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
+            h1 {{ color: #5865f2; }}
+            .message {{ font-size: 1.5rem; margin: 1rem 0; color: #faa61a; }}
+            form {{ margin-top: 1.5rem; }}
+            button {{
+                padding: 1rem 2rem;
+                font-size: 1.2rem;
+                background: #57f287;
+                color: #000;
+                border: none;
+                border-radius: 0.5rem;
+                cursor: pointer;
+                font-weight: bold;
+            }}
+            button:hover {{ background: #3ba55c; }}
+            .cancel {{
+                display: inline-block;
+                margin-top: 1rem;
+                padding: 0.75rem 1.5rem;
+                background: #4f545c;
+                color: #fff;
+                text-decoration: none;
+                border-radius: 0.5rem;
+            }}
+            .user {{ color: #b9bbbe; margin-top: 1rem; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="icon">📤</div>
+            <h1>送信確認</h1>
+            <p class="message">「{base_message}」を送信しますか？</p>
+            <form method="POST">
+                <button type="submit">送信する</button>
+            </form>
+            <a href="/" class="cancel">キャンセル</a>
+            <p class="user">by {username}</p>
+        </div>
+    </body>
+    </html>
+    """)
+
+
+@app.post("/action/{action_type}")
+async def direct_action_execute(request: Request, action_type: str):
+    """実際にWebhookを送信（認証必須）"""
     user = require_auth(request)
     user_id = user.get("user_id", "")
     username = user.get("username", "不明")
     
-    # アクションの判定
-    action_map = {
-        "open": "あけた",
-        "close": "しめた",
-        "test": "test",
-    }
-    
-    if action_type not in action_map:
+    if action_type not in ACTION_MAP:
         raise HTTPException(400, "不明なアクションです")
     
-    base_message = action_map[action_type]
+    # レート制限チェック
+    allowed, wait_time = check_rate_limit(user_id)
+    if not allowed:
+        raise HTTPException(429, f"送信制限中です。{wait_time}秒後に再試行してください。")
+    
+    base_message = ACTION_MAP[action_type]
     message = f"{base_message} by <@{user_id}>"
     
     # Discord Webhookに送信
@@ -219,7 +389,21 @@ async def direct_action(request: Request, action_type: str):
     except Exception as e:
         raise HTTPException(500, f"Discord送信に失敗しました: {str(e)}")
     
-    # 成功ページを表示
+    # リクエストを記録
+    record_request(user_id)
+    
+    # 成功ページにリダイレクト（PRGパターン）
+    return RedirectResponse(url=f"/action/{action_type}/done", status_code=303)
+
+
+@app.get("/action/{action_type}/done")
+async def direct_action_done(request: Request, action_type: str):
+    """送信完了画面（リロードしても再送信されない）"""
+    user = require_auth(request)
+    username = user.get("username", "不明")
+    
+    base_message = ACTION_MAP.get(action_type, "不明")
+    
     return HTMLResponse(f"""
     <!DOCTYPE html>
     <html>
@@ -243,7 +427,7 @@ async def direct_action(request: Request, action_type: str):
                 padding: 2rem;
             }}
             .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
-            h1 {{ color: #5865f2; }}
+            h1 {{ color: #57f287; }}
             a {{
                 display: inline-block;
                 margin-top: 1rem;
