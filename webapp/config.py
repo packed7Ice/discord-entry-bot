@@ -45,3 +45,10 @@ BASE_URL = get_optional_env("BASE_URL", "http://localhost:8000")
 DISCORD_AUTHORIZE_URL = "https://discord.com/oauth2/authorize"
 DISCORD_TOKEN_URL = "https://discord.com/api/oauth2/token"
 DISCORD_API_BASE = "https://discord.com/api/v10"
+
+# 管理者ユーザーID（カンマ区切り）
+ADMIN_USER_IDS = [
+    uid.strip() 
+    for uid in get_optional_env("ADMIN_USER_IDS", "").split(",") 
+    if uid.strip()
+]

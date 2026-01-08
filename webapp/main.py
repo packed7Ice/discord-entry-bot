@@ -5,6 +5,9 @@ main.py - FastAPI Webアプリケーション
 Discord OAuth2でサーバーメンバーのみがアクセス可能。
 """
 import httpx
+import json
+import logging
+from datetime import datetime
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +19,7 @@ from config import (
     CLOSE_QR,
     TEST_QR,
     DISCORD_GUILD_ID,
+    ADMIN_USER_IDS,
 )
 from auth import (
     generate_state,
@@ -182,6 +186,9 @@ async def scan_qr(request: Request):
     except Exception as e:
         raise HTTPException(500, f"Discord送信に失敗しました: {str(e)}")
     
+    # 統計を記録（Cloud Logging + インメモリ）
+    log_action(user_id, username, action, source="qr_scan")
+    
     return {
         "status": "ok",
         "action": action,
@@ -268,6 +275,77 @@ def validate_form_token(token: str, user_id: str, action_type: str) -> bool:
     # トークンを消費（一度きり）
     del form_tokens[token]
     return True
+
+
+# ---------------------------------------------------------------------------
+# 使用統計（Cloud Logging + インメモリ）
+# ---------------------------------------------------------------------------
+
+# Cloud Logging 用のロガー設定
+logger = logging.getLogger("usage_stats")
+logger.setLevel(logging.INFO)
+
+# Cloud Run では stdout に出力すれば自動的に Cloud Logging に記録される
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(message)s'))
+logger.addHandler(handler)
+
+# インメモリ統計（リアルタイム表示用、再起動でリセット）
+usage_stats = {
+    "total_actions": 0,
+    "actions_by_type": defaultdict(int),  # {"open": 10, "close": 5, "test": 2}
+    "actions_by_user": defaultdict(lambda: defaultdict(int)),  # {user_id: {"open": 3, "close": 1}}
+    "recent_logs": [],  # 最新100件のログ
+    "started_at": datetime.now().isoformat(),
+}
+MAX_RECENT_LOGS = 100
+
+
+def log_action(user_id: str, username: str, action_type: str, source: str = "direct"):
+    """アクションをログに記録（Cloud Logging + インメモリ）"""
+    timestamp = datetime.now().isoformat()
+    
+    # 構造化ログ（Cloud Logging用、JSON形式）
+    log_entry = {
+        "event": "action_sent",
+        "timestamp": timestamp,
+        "user_id": user_id,
+        "username": username,
+        "action_type": action_type,
+        "source": source,  # "direct" or "qr_scan"
+    }
+    logger.info(json.dumps(log_entry, ensure_ascii=False))
+    
+    # インメモリ統計を更新
+    usage_stats["total_actions"] += 1
+    usage_stats["actions_by_type"][action_type] += 1
+    usage_stats["actions_by_user"][user_id][action_type] += 1
+    
+    # 最新ログを保存（最大100件）
+    usage_stats["recent_logs"].insert(0, {
+        "timestamp": timestamp,
+        "user_id": user_id,
+        "username": username,
+        "action_type": action_type,
+        "source": source,
+    })
+    if len(usage_stats["recent_logs"]) > MAX_RECENT_LOGS:
+        usage_stats["recent_logs"] = usage_stats["recent_logs"][:MAX_RECENT_LOGS]
+
+
+def is_admin(user_id: str) -> bool:
+    """ユーザーが管理者かどうかをチェック"""
+    return user_id in ADMIN_USER_IDS
+
+
+def require_admin(request: Request) -> dict:
+    """管理者権限を必須化（未認証または非管理者なら例外）"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(401, "ログインが必要です")
+    if not is_admin(user.get("user_id", "")):
+        raise HTTPException(403, "管理者権限が必要です")
+    return user
 
 
 # アクションマッピング
@@ -738,8 +816,9 @@ async def direct_action_execute(request: Request, action_type: str):
     
     # リクエストを記録
     record_request(user_id)
-
     
+    # 統計を記録（Cloud Logging + インメモリ）
+    log_action(user_id, username, action_type, source="direct")    
     # 成功ページにリダイレクト（PRGパターン）
     return RedirectResponse(url=f"/action/{action_type}/done", status_code=303)
 
@@ -967,6 +1046,273 @@ async def scanner(request: Request):
     if index_path.exists():
         return HTMLResponse(index_path.read_text(encoding="utf-8"))
     return HTMLResponse("<h1>スキャナー準備中</h1>")
+
+
+# ---------------------------------------------------------------------------
+# 管理者専用統計ページ
+# ---------------------------------------------------------------------------
+
+@app.get("/stats/api")
+async def stats_api(request: Request):
+    """統計データをJSON形式で取得（管理者のみ）"""
+    user = require_admin(request)
+    
+    # defaultdictを通常のdictに変換
+    actions_by_type = dict(usage_stats["actions_by_type"])
+    actions_by_user = {
+        uid: dict(actions) 
+        for uid, actions in usage_stats["actions_by_user"].items()
+    }
+    
+    return JSONResponse({
+        "total_actions": usage_stats["total_actions"],
+        "actions_by_type": actions_by_type,
+        "actions_by_user": actions_by_user,
+        "recent_logs": usage_stats["recent_logs"][:20],  # 最新20件
+        "started_at": usage_stats["started_at"],
+    })
+
+
+@app.get("/stats")
+async def stats_page(request: Request):
+    """統計ダッシュボード（管理者のみ）"""
+    user = require_admin(request)
+    username = user.get("username", "管理者")
+    
+    return HTMLResponse(f"""
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>使用統計 - 管理者専用</title>
+        <link rel="stylesheet" href="/style.css">
+        <script>
+            (function() {{
+                var saved = localStorage.getItem('theme');
+                var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                document.documentElement.setAttribute('data-theme', theme);
+            }})();
+        </script>
+        <style>
+            .stats-container {{
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 2rem 1rem;
+            }}
+            .stats-header {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 2rem;
+            }}
+            .stats-header h1 {{
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: var(--text-primary);
+            }}
+            .back-btn {{
+                color: var(--text-muted);
+                text-decoration: none;
+                font-size: 0.9rem;
+            }}
+            .stats-card {{
+                background: var(--bg-card);
+                backdrop-filter: blur(12px);
+                border: 1px solid var(--border-glass);
+                border-radius: 16px;
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }}
+            .stats-card h2 {{
+                font-size: 1.1rem;
+                color: var(--text-secondary);
+                margin-bottom: 1rem;
+            }}
+            .stat-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 1rem;
+            }}
+            .stat-item {{
+                text-align: center;
+                padding: 1rem;
+                background: var(--bg-glass);
+                border-radius: 12px;
+            }}
+            .stat-value {{
+                font-size: 2rem;
+                font-weight: 700;
+                color: var(--primary);
+            }}
+            .stat-label {{
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-top: 0.25rem;
+            }}
+            .log-table {{
+                width: 100%;
+                border-collapse: collapse;
+            }}
+            .log-table th, .log-table td {{
+                padding: 0.75rem;
+                text-align: left;
+                border-bottom: 1px solid var(--border-glass);
+            }}
+            .log-table th {{
+                color: var(--text-muted);
+                font-weight: 600;
+                font-size: 0.85rem;
+            }}
+            .log-table td {{
+                color: var(--text-primary);
+                font-size: 0.9rem;
+            }}
+            .action-open {{ color: #57F287; }}
+            .action-close {{ color: #ED4245; }}
+            .action-test {{ color: #FEE75C; }}
+            .source-badge {{
+                display: inline-block;
+                padding: 0.25rem 0.5rem;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                background: var(--bg-glass);
+            }}
+            .refresh-btn {{
+                padding: 0.5rem 1rem;
+                background: var(--primary);
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 0.9rem;
+            }}
+            .admin-badge {{
+                display: inline-block;
+                padding: 0.25rem 0.75rem;
+                background: linear-gradient(135deg, #ED4245 0%, #c03537 100%);
+                color: #fff;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                font-weight: 600;
+            }}
+            .started-at {{
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                margin-top: 1rem;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="theme-toggle" onclick="toggleTheme()" title="テーマ切り替え">
+            <span class="theme-icon">🌙</span>
+        </div>
+        <div class="stats-container">
+            <div class="stats-header">
+                <div>
+                    <h1>📊 使用統計</h1>
+                    <span class="admin-badge">管理者専用</span>
+                </div>
+                <a href="/dashboard" class="back-btn">← ダッシュボードに戻る</a>
+            </div>
+            
+            <div class="stats-card">
+                <h2>合計送信数</h2>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalActions">-</div>
+                        <div class="stat-label">合計</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value action-open" id="openCount">-</div>
+                        <div class="stat-label">あけた</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value action-close" id="closeCount">-</div>
+                        <div class="stat-label">しめた</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value action-test" id="testCount">-</div>
+                        <div class="stat-label">test</div>
+                    </div>
+                </div>
+                <p class="started-at">統計開始: <span id="startedAt">-</span></p>
+            </div>
+            
+            <div class="stats-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>最新のログ（20件）</h2>
+                    <button class="refresh-btn" onclick="loadStats()">🔄 更新</button>
+                </div>
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>時刻</th>
+                            <th>ユーザー</th>
+                            <th>アクション</th>
+                            <th>ソース</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTable">
+                        <tr><td colspan="4" style="text-align: center;">読み込み中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <script>
+            function getPreferredTheme() {{
+                const saved = localStorage.getItem('theme');
+                if (saved) return saved;
+                return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            }}
+            function setTheme(theme) {{
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                document.querySelector('.theme-icon').textContent = theme === 'light' ? '🌙' : '☀️';
+            }}
+            function toggleTheme() {{
+                const current = document.documentElement.getAttribute('data-theme') || 'dark';
+                setTheme(current === 'dark' ? 'light' : 'dark');
+            }}
+            setTheme(getPreferredTheme());
+            
+            async function loadStats() {{
+                try {{
+                    const res = await fetch('/stats/api');
+                    if (!res.ok) throw new Error('Failed to load stats');
+                    const data = await res.json();
+                    
+                    document.getElementById('totalActions').textContent = data.total_actions;
+                    document.getElementById('openCount').textContent = data.actions_by_type.open || 0;
+                    document.getElementById('closeCount').textContent = data.actions_by_type.close || 0;
+                    document.getElementById('testCount').textContent = data.actions_by_type.test || 0;
+                    document.getElementById('startedAt').textContent = new Date(data.started_at).toLocaleString('ja-JP');
+                    
+                    const tbody = document.getElementById('logTable');
+                    if (data.recent_logs.length === 0) {{
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">ログがありません</td></tr>';
+                    }} else {{
+                        tbody.innerHTML = data.recent_logs.map(log => `
+                            <tr>
+                                <td>${{new Date(log.timestamp).toLocaleString('ja-JP')}}</td>
+                                <td>${{log.username}}</td>
+                                <td class="action-${{log.action_type}}">${{log.action_type}}</td>
+                                <td><span class="source-badge">${{log.source === 'qr_scan' ? 'QR' : '直接'}}</span></td>
+                            </tr>
+                        `).join('');
+                    }}
+                }} catch (e) {{
+                    console.error('Failed to load stats:', e);
+                }}
+            }}
+            
+            loadStats();
+            // 30秒ごとに自動更新
+            setInterval(loadStats, 30000);
+        </script>
+    </body>
+    </html>
+    """)
 
 
 # 静的ファイルをマウント（login.html, style.css, scanner.js など）
