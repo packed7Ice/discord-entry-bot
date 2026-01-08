@@ -33,6 +33,14 @@ from auth import (
     SESSION_COOKIE_NAME,
     SESSION_MAX_AGE,
 )
+from database import (
+    log_action_to_firestore,
+    get_global_stats,
+    get_recent_actions,
+    get_daily_stats,
+    get_user_stats,
+    is_firestore_enabled,
+)
 
 app = FastAPI(title="QR Scanner Web App")
 
@@ -302,10 +310,13 @@ MAX_RECENT_LOGS = 100
 
 
 def log_action(user_id: str, username: str, action_type: str, source: str = "direct"):
-    """アクションをログに記録（Cloud Logging + インメモリ）"""
+    """アクションをログに記録（Firestore + Cloud Logging + インメモリ）"""
     timestamp = datetime.now().isoformat()
     
-    # 構造化ログ（Cloud Logging用、JSON形式）
+    # 1. Firestore に永続保存（メイン）
+    log_action_to_firestore(user_id, username, action_type, source)
+    
+    # 2. 構造化ログ（Cloud Logging用、JSON形式）
     log_entry = {
         "event": "action_sent",
         "timestamp": timestamp,
@@ -316,7 +327,7 @@ def log_action(user_id: str, username: str, action_type: str, source: str = "dir
     }
     logger.info(json.dumps(log_entry, ensure_ascii=False))
     
-    # インメモリ統計を更新
+    # 3. インメモリ統計を更新（フォールバック / リアルタイム表示用）
     usage_stats["total_actions"] += 1
     usage_stats["actions_by_type"][action_type] += 1
     usage_stats["actions_by_user"][user_id][action_type] += 1
@@ -1057,19 +1068,35 @@ async def stats_api(request: Request):
     """統計データをJSON形式で取得（管理者のみ）"""
     user = require_admin(request)
     
-    # defaultdictを通常のdictに変換
+    # Firestore が有効な場合は永続データを使用
+    if is_firestore_enabled():
+        global_stats = get_global_stats()
+        recent_logs = get_recent_actions(limit=50)
+        daily_stats = get_daily_stats(days=7)
+        
+        return JSONResponse({
+            "firestore_enabled": True,
+            "total_actions": global_stats.get("total_actions", 0),
+            "actions_by_type": {
+                "open": global_stats.get("action_open", 0),
+                "close": global_stats.get("action_close", 0),
+                "test": global_stats.get("action_test", 0),
+            },
+            "recent_logs": recent_logs,
+            "daily_stats": daily_stats,
+            "last_updated": global_stats.get("last_updated"),
+        })
+    
+    # Firestore 無効時はインメモリデータを使用
     actions_by_type = dict(usage_stats["actions_by_type"])
-    actions_by_user = {
-        uid: dict(actions) 
-        for uid, actions in usage_stats["actions_by_user"].items()
-    }
     
     return JSONResponse({
+        "firestore_enabled": False,
         "total_actions": usage_stats["total_actions"],
         "actions_by_type": actions_by_type,
-        "actions_by_user": actions_by_user,
-        "recent_logs": usage_stats["recent_logs"][:20],  # 最新20件
+        "recent_logs": usage_stats["recent_logs"][:50],
         "started_at": usage_stats["started_at"],
+        "note": "Firestore無効のため、再起動でデータがリセットされます",
     })
 
 
