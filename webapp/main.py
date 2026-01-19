@@ -114,6 +114,7 @@ async def callback(request: Request, code: str = None, state: str = None, error:
         max_age=SESSION_MAX_AGE,
         httponly=True,
         samesite="lax",
+        secure=True,  # HTTPSでのみ送信
     )
     response.delete_cookie("oauth_state")
     return response
